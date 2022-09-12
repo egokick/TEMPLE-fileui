@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 
-namespace endMension.Models
+namespace fileui.Models
 {
     public class FileTag
     {

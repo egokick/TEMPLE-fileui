@@ -7,11 +7,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using endMension.Models;
+using fileui.Models;
 using System.IO;
 using Newtonsoft.Json;
 
-namespace endMension
+namespace fileui
 {
     public partial class Form1 : Form
     {
@@ -46,8 +46,24 @@ namespace endMension
             {
                 comboFolder.Items.Add(folder.FilePath);
             }
-            
+            pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBox1_Paint);
         }
+
+        private void pictureBox1_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
+        {
+            // Create a local version of the graphics object for the PictureBox.
+            Graphics g = e.Graphics;
+            g.Clear(Color.White);
+            // Draw a line in the PictureBox.
+            g.DrawLine(System.Drawing.Pens.Red, pictureBox1.Left, pictureBox1.Top,
+                pictureBox1.Right, pictureBox1.Bottom);
+
+            foreach(var line in GraphicsLines)
+            {
+                g.DrawLine(System.Drawing.Pens.Red, line[0], line[1], line[2], line[3]);
+            }
+        }
+
 
         public List<Button> TagButtons = new List<Button>();
         private void DrawTagButtons()
@@ -65,7 +81,7 @@ namespace endMension
             {
                 y += 50;
                 var tagbutton = new Button();
-                TagButtons.Add(tagbutton);
+                TagButtons.Add(tagbutton);                
                 tagbutton.Text = tag.TagName;
                 tagbutton.Name = tag.TagName;
                 tagbutton.Location = new Point(x, y);
@@ -78,6 +94,7 @@ namespace endMension
                 tagbutton.MouseUp += new MouseEventHandler(textbox_MouseUp);
                 tag.TagButton = tagbutton;
                 this.Controls.Add(tagbutton);
+                tagbutton.BringToFront();
 
                 var tagButtonLinker = new Button();
                 TagButtons.Add(tagButtonLinker);
@@ -87,16 +104,99 @@ namespace endMension
                 tagButtonLinker.Size = new Size(30, 50);
                 tagButtonLinker.Visible = true;
                 tagButtonLinker.BringToFront();
-                tagButtonLinker.MouseDown += new MouseEventHandler(textbox_MouseDown);
-                tagButtonLinker.MouseMove += new MouseEventHandler(textbox_MouseMove);
-                tagButtonLinker.MouseUp += new MouseEventHandler(textbox_MouseUp);
+                tagButtonLinker.MouseDown += new MouseEventHandler(linker_MouseDown);
+                //tagButtonLinker.MouseMove += new MouseEventHandler(textbox_MouseMove);
+                tagButtonLinker.MouseUp += new MouseEventHandler(linker_MouseUp);
                 tag.TagButtonLinker = tagButtonLinker;
                 this.Controls.Add(tagButtonLinker);
+                tagButtonLinker.BringToFront();
 
                 tagbutton.Click += new EventHandler(Tag_Click);
                 tagButtonLinker.Click += new EventHandler(TagLink_Click);
                 tag.TagButtonLinker = tagButtonLinker;
             }
+        }
+
+        List<Point> points = new List<Point>();
+
+        void linker_MouseUp(object sender, EventArgs e)
+        {
+            var lastOpenedForm = Application.OpenForms.Cast<Form>().Last();
+            var control = FindControlAtCursor(lastOpenedForm);
+            if (control is null) return;
+            if(control is Button)
+            {
+                var btn = ((System.Windows.Forms.Button)control);
+                Console.WriteLine($"{btn.Text} {btn.Name}");
+                if(btn.Name != activeControl.Name)
+                {
+                    // draw line from first linker to second linker
+                    var location = btn.Location;
+
+                    var graphics = this.CreateGraphics();
+
+                    Pen pen = new Pen(Color.FromArgb(255, 0, 0, 0));
+                    int x1 = location.X + activeControl.Width;
+                    int y1 = location.Y + (activeControl.Height / 2);
+                    int x2 = x1 + 100;
+                    int y2 = y1;
+                    graphics.DrawLine(pen, x1, y1, x2, y2);
+                }
+                else
+                {
+                    Console.WriteLine("This is the same linker button. todo: clear line ?");
+                }
+                
+            }
+
+
+            activeControl = null;
+            Cursor = Cursors.Default;
+        }
+
+        public static Control FindControlAtPoint(Control container, Point pos)
+        {
+            Control child;
+            foreach (Control c in container.Controls)
+            {
+                if (c.Visible && c.Bounds.Contains(pos))
+                {
+                    return c;
+                    child = FindControlAtPoint(c, new Point(pos.X - c.Left, pos.Y - c.Top));
+                    if (child == null) return c;
+                    else return child;
+                }
+            }
+            return null;
+        }
+
+        public static Control FindControlAtCursor(Form form)
+        {
+            Point pos = Cursor.Position;
+            if (form.Bounds.Contains(pos))
+                return FindControlAtPoint(form, form.PointToClient(pos));
+            return null;
+        }
+
+        public List<int[]> GraphicsLines = new List<int[]>();
+        void linker_MouseDown(object sender, MouseEventArgs e)
+        {
+            activeControl = sender as Control;
+            previousLocation = e.Location;
+            Cursor = Cursors.Hand;
+
+            var location = activeControl.Location;
+
+            var graphics = this.CreateGraphics();
+            
+            Pen pen = new Pen(Color.FromArgb(255, 0, 0, 0));
+            int x1 = location.X + activeControl.Width;
+            int y1 = location.Y + (activeControl.Height /2);
+            int x2 = x1 + 100;
+            int y2 = y1;
+
+            GraphicsLines.Add(new int[4] { x1, y1, x2, y2 });         
+            
         }
 
         private void TagLink_Click(object sender, EventArgs e)
@@ -273,14 +373,23 @@ namespace endMension
             Cursor = Cursors.Hand;
         }
 
+
+
         void textbox_MouseMove(object sender, MouseEventArgs e)
         {
             if (activeControl == null || activeControl != sender)
-                return;
+                return;          
 
+            // Tag button 
             var location = activeControl.Location;
             location.Offset(e.Location.X - previousLocation.X, e.Location.Y - previousLocation.Y);
             activeControl.Location = location;
+
+            // linker button lookup
+            var linkerButton = FileTags.First(x => x.TagName == activeControl.Name).TagButtonLinker;
+            var linkerLocation = linkerButton.Location;
+            linkerLocation.Offset(e.Location.X - previousLocation.X, e.Location.Y - previousLocation.Y);
+            linkerButton.Location = linkerLocation;
         }
 
         void textbox_MouseUp(object sender, MouseEventArgs e)
@@ -300,6 +409,22 @@ namespace endMension
         }
 
         private void comboLoadTagSet_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+       
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            var container = Application.OpenForms.Cast<Form>().Last();
+            foreach (var c in container.Controls)
+            {
+                Console.WriteLine(c.GetType());
+                //c.Dispose();
+            }
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
         {
 
         }
