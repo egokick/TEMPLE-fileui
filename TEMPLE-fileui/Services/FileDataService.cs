@@ -38,7 +38,7 @@ namespace TEMPLE.Services
                   `Tag8` VARCHAR(45) NULL,
                   `Tag9` VARCHAR(45) NULL,
                   `Tag10` VARCHAR(45) NULL,
-                  `Path` VARCHAR(200) NULL,
+                  `Path` VARCHAR(500) NULL,
                   `SHA256` VARCHAR(64) NULL,                  
                   PRIMARY KEY (`FileId`),
                   UNIQUE INDEX `FileId_UNIQUE` (`FileId` ASC),
@@ -65,21 +65,39 @@ namespace TEMPLE.Services
         // todo sqlquery batcher optimize for 150? or db speed i dunno
         public async Task<bool> SyncFolderPaths(string[] filePaths)
         {
-            var sqlQuery = new StringBuilder();
-            sqlQuery.AppendLine("INSERT INTO temple.file(Path)");            
-            foreach(var path in filePaths)
-            {                
-                if (sqlQuery.Length > 35) sqlQuery.AppendLine(" union all");
-                sqlQuery.Append($"SELECT '{path}' FROM (SELECT COUNT(*) as Count FROM temple.file WHERE Path = '{path}') as t WHERE t.Count = 0");
+            try
+            {
+                var sqlQuery = new StringBuilder();
+                sqlQuery.AppendLine("INSERT INTO temple.file(Path)");
+                foreach (var path in filePaths)
+                {                    
+                    var safePath = path.Replace("\\", "\\\\");
+                    safePath = safePath.Replace("'", @"\'");
+                    if (sqlQuery.Length > 35) sqlQuery.AppendLine(" union all");
+                    sqlQuery.Append($"SELECT '{safePath}' FROM (SELECT COUNT(*) as Count FROM temple.file WHERE Path = '{safePath}') as t WHERE t.Count = 0");
+
+                    if(sqlQuery.Length > 10000)
+                    {
+                        
+                        var innerResult = await _databaseService.ExecuteQuery($"{sqlQuery}");
+                        
+                        sqlQuery.Clear();
+                        sqlQuery.AppendLine("INSERT INTO temple.file(Path)");
+                    }
+                }
+                sqlQuery.Append(";");
+
+                var insertResult = await _databaseService.ExecuteQuery($"{sqlQuery}");
+
+                if (insertResult is null || insertResult.HasErrors) return false;
+
+                return true;
             }
-            sqlQuery.Append(";");
-
-            sqlQuery = sqlQuery.Replace("\\", "\\\\");
-            var insertResult = await _databaseService.ExecuteQuery($"{sqlQuery}");
-
-            if (insertResult is null || insertResult.HasErrors) return false;
-
-            return true;
+            catch(Exception ex)
+            {
+                Console.WriteLine($"ERROR {ex.Message}");
+                return false;
+            }
         }
 
         // expects you to have ran SyncFolderPaths already
@@ -98,6 +116,7 @@ namespace TEMPLE.Services
                 foreach(var path in pathsResult)
                 {
                     var safePath = path.Replace("\\", "\\\\");
+                    safePath = safePath.Replace("'", @"\'");
                     // check if file exists
                     if (!File.Exists(path))
                     {
@@ -105,10 +124,20 @@ namespace TEMPLE.Services
                         continue;
                     }
 
-                    using var SHA256 = SHA256Managed.Create();
-                    using FileStream fileStream = File.OpenRead(path);
-                    var fileSHA256 = Convert.ToBase64String(SHA256.ComputeHash(fileStream));
-                    sqlUpdate.AppendLine($"UPDATE temple.file SET sha256 = '{fileSHA256}' WHERE Path = '{safePath}';");
+                    // get file size 
+                    var f = new FileInfo(path);
+                    // 1MB
+                    if (f.Length < 1000000)
+                    {
+                        using var SHA256 = SHA256Managed.Create();
+                        using FileStream fileStream = File.OpenRead(path);
+                        var fileSHA256 = Convert.ToBase64String(SHA256.ComputeHash(fileStream));
+                        sqlUpdate.AppendLine($"UPDATE temple.file SET sha256 = '{fileSHA256}' WHERE Path = '{safePath}';");
+                    }
+                    else
+                    {
+                        sqlUpdate.AppendLine($"UPDATE temple.file SET sha256 = 'greater than 1000000 bytes' WHERE Path = '{safePath}';");
+                    }
                 }
                 
                 if(sqlDelete.Length > 0) _ = await _databaseService.ExecuteQuery($"{sqlDelete}");
@@ -120,6 +149,37 @@ namespace TEMPLE.Services
                 Console.WriteLine("todo");
                 throw new Exception("todo");
             }
+
+            return true;
+        }
+
+        public async Task<bool> TagFilesInFolder(string folderPath, List<FileTag> fileTags)
+        {            
+            // yeah 8 slashes... obviously
+            var folderPathSuperSafe = folderPath.Replace("\\", "\\\\\\\\");
+            folderPathSuperSafe = folderPathSuperSafe.Replace("'", @"\'");
+            var sqlAddTag = new StringBuilder();
+            sqlAddTag.AppendLine("UPDATE temple.file");
+            // if no tags are enabled then clear all tags for all files in the folder
+            if (fileTags.All(x => !x.Enabled)) 
+            { 
+                sqlAddTag.AppendLine("SET Tag1 = null, Tag2 = null, Tag3 = null, Tag4 = null, Tag5 = null, Tag6 = null, Tag7 = null, Tag8 = null, Tag9 = null, Tag10 = null");
+            }
+            else
+            {
+                sqlAddTag.Append("SET ");
+                int i = 1;
+                foreach (var tag in fileTags.Where(x=>x.Enabled))
+                {                    
+                    if(i>1) sqlAddTag.Append(", ");
+                    sqlAddTag.Append($"Tag{tag.Order} = '{tag.TagName}'");
+                    i++;
+                }
+                sqlAddTag.AppendLine("");
+            }            
+
+            sqlAddTag.AppendLine($"WHERE Path like '{folderPathSuperSafe}%';");            
+            _ = await _databaseService.ExecuteQuery($"{sqlAddTag}");
 
             return true;
         }

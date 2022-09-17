@@ -134,7 +134,7 @@ namespace fileui
             if(control is Button)
             {
                 var btn = ((System.Windows.Forms.Button)control);
-                Console.WriteLine($"{btn.Text} {btn.Name}");
+                //Console.WriteLine($"{btn.Text} {btn.Name}");
                 if(btn.Name != activeControl.Name)
                 {
                     // draw line from first linker to second linker
@@ -436,7 +436,7 @@ namespace fileui
             var container = Application.OpenForms.Cast<Form>().Last();
             foreach (var c in container.Controls)
             {
-                Console.WriteLine(c.GetType());
+                //Console.WriteLine(c.GetType());
                 //c.Dispose();
             }
         }
@@ -444,6 +444,17 @@ namespace fileui
         private void pictureBox1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void btnApplyTags_Click(object sender, EventArgs e)
+        {
+            var folderPath = comboFolder.SelectedItem.ToString();
+
+            new Thread(() =>
+            {
+                _ = _fileService.TagFilesInFolder(folderPath, FileTags);
+            }).Start();
+            
         }
     }
 }
