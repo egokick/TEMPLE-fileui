@@ -101,14 +101,14 @@ namespace TEMPLE.Services
                     // check if file exists
                     if (!File.Exists(path))
                     {
-                        sqlDelete.Append($"DELETE FROM temple.file WHERE Path = '{safePath}';");
+                        sqlDelete.AppendLine($"DELETE FROM temple.file WHERE Path = '{safePath}';");
                         continue;
                     }
 
                     using var SHA256 = SHA256Managed.Create();
                     using FileStream fileStream = File.OpenRead(path);
                     var fileSHA256 = Convert.ToBase64String(SHA256.ComputeHash(fileStream));
-                    sqlUpdate.Append($"UPDATE temple.file SET sha256 = {fileSHA256} WHERE Path = {safePath};");
+                    sqlUpdate.AppendLine($"UPDATE temple.file SET sha256 = '{fileSHA256}' WHERE Path = '{safePath}';");
                 }
                 
                 if(sqlDelete.Length > 0) _ = await _databaseService.ExecuteQuery($"{sqlDelete}");

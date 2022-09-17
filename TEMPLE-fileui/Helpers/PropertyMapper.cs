@@ -39,9 +39,20 @@ namespace fileui.Models
         {
             var obj = default(T);
             if (row == null) return obj;
-            obj = Activator.CreateInstance<T>();
-            foreach (DataColumn column in row.Table.Columns)
+
+            if (!(typeof(T) == typeof(string) || typeof(T) == typeof(int)))
             {
+                obj = Activator.CreateInstance<T>();
+            }
+            
+            foreach (DataColumn column in row.Table.Columns)
+            {   
+                // just return the type
+                if(typeof(T) == typeof(string) || typeof(T) == typeof(int))
+                {
+                    return (T) row[column.ColumnName];
+                }
+
                 var prop = obj.GetType().GetProperty(column.ColumnName);
                 if(prop==null || prop.SetMethod == null) continue;
                 try

@@ -11,6 +11,7 @@ using fileui.Models;
 using System.IO;
 using Newtonsoft.Json;
 using TEMPLE.Services;
+using System.Threading;
 
 namespace fileui
 {
@@ -361,6 +362,12 @@ namespace fileui
             DrawTagButtons();
 
             var syncResult = syncResultTask.Result;
+
+            // don't block UI
+            new Thread(() =>
+            {
+                _ = _fileService.SyncFileHash();
+            }).Start();            
         }
 
         private Control activeControl;
