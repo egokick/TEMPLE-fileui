@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using fileui.Models;
 using System.IO;
 using Newtonsoft.Json;
+using TEMPLE.Services;
 
 namespace fileui
 {
@@ -17,9 +18,13 @@ namespace fileui
     {
         public List<FileTag> FileTags { get; set; } = new List<FileTag>();
         public List<Folder> Folders { get; set; } = new List<Folder>();
+
+        public FileDataService _fileService;
         public Form1()
         {
             InitializeComponent();
+            _fileService = new FileDataService("localhost","password");
+            var dbInitResult = _fileService.DatabaseInitialise().Result;
 
             comboDebug.Items.Add("Tags Save");
             comboDebug.Items.Add("Tags Read");
@@ -49,6 +54,7 @@ namespace fileui
             pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBox1_Paint);
         }
 
+       
         private void pictureBox1_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
         {
             // Create a local version of the graphics object for the PictureBox.
@@ -162,9 +168,9 @@ namespace fileui
                 if (c.Visible && c.Bounds.Contains(pos))
                 {
                     return c;
-                    child = FindControlAtPoint(c, new Point(pos.X - c.Left, pos.Y - c.Top));
-                    if (child == null) return c;
-                    else return child;
+                    //child = FindControlAtPoint(c, new Point(pos.X - c.Left, pos.Y - c.Top));
+                    //if (child == null) return c;
+                    //else return child;
                 }
             }
             return null;
@@ -338,6 +344,8 @@ namespace fileui
         {
             var folderPath = comboFolder.SelectedItem.ToString();
             var files = Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories);
+            var syncResultTask = _fileService.SyncFolderPaths(files);
+
             if (files.Length == 0)
             {
                 txtFileOutput.Text = "No files found";
@@ -351,6 +359,8 @@ namespace fileui
             }
             txtFileOutput.Text = sb.ToString();
             DrawTagButtons();
+
+            var syncResult = syncResultTask.Result;
         }
 
         private Control activeControl;
