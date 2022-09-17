@@ -101,6 +101,10 @@ namespace fileui
                 tagbutton.MouseUp += new MouseEventHandler(textbox_MouseUp);
                 tag.TagButton = tagbutton;
                 this.Controls.Add(tagbutton);
+                if (tag.Enabled)
+                {
+                    tagbutton.BackColor = Color.LimeGreen;
+                }
                 tagbutton.BringToFront();
 
                 var tagButtonLinker = new Button();
