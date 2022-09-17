@@ -183,5 +183,23 @@ namespace TEMPLE.Services
 
             return true;
         }
+
+        public async Task<List<string>> GetFilesByTag(List<FileTag> fileTags)
+        {
+            if (fileTags.All(x => !x.Enabled)) return new List<string>();
+
+            var sqlQuery = new StringBuilder();
+            var select = "SELECT Path FROM temple.file WHERE ";
+            sqlQuery.Append(select);
+            foreach (var tag in fileTags.Where(x=>x.Enabled))
+            {
+                if (sqlQuery.ToString() != select) sqlQuery.Append(" AND ");
+                sqlQuery.Append($"Tag{tag.Order} = '{tag.TagName}'");
+            }
+
+            var fileResult = await _databaseService.ExecuteQuery<string>($"{sqlQuery}");
+
+            return fileResult?.ToList() ?? new List<string>();
+        }
     }
 }

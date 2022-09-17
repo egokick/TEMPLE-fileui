@@ -203,6 +203,7 @@ namespace fileui
             this.btnGetFiles.TabIndex = 17;
             this.btnGetFiles.Text = "Get Files For Tags";
             this.btnGetFiles.UseVisualStyleBackColor = true;
+            this.btnGetFiles.Click += new System.EventHandler(this.btnGetFiles_Click);
             // 
             // Form1
             // 

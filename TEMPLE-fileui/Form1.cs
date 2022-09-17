@@ -460,5 +460,17 @@ namespace fileui
             }).Start();
             
         }
+
+        private void btnGetFiles_Click(object sender, EventArgs e)
+        {
+            txtFileOutput.Text = "";
+            var files = _fileService.GetFilesByTag(FileTags).Result;
+            var fileSb = new StringBuilder();
+            foreach(var file in files)
+            {
+                fileSb.AppendLine(file);
+            }
+            txtFileOutput.Text = fileSb.ToString();
+        }
     }
 }
