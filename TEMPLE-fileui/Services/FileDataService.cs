@@ -90,7 +90,6 @@ namespace TEMPLE.Services
             if (string.IsNullOrEmpty(folder))
             {
                 var sqlQuery = "SELECT Path FROM temple.file;";
-
                 var pathsResult = await _databaseService.ExecuteQuery<string>(sqlQuery);
 
                 var sqlDelete = new StringBuilder();
