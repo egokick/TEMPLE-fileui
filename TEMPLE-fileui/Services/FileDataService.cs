@@ -45,7 +45,13 @@ namespace TEMPLE.Services
                   INDEX `Path` (`Path` ASC),
                   INDEX `Tag1` (`Tag1` ASC),
                   INDEX `Tag2` (`Tag2` ASC),
-                  INDEX `Tag3` (`Tag3` ASC));");
+                  INDEX `Tag3` (`Tag3` ASC));
+
+                    CREATE TABLE `temple`.`tag_count` (
+                      `TagCountId` INT NOT NULL AUTO_INCREMENT,
+                      `TagName` VARCHAR(45) NULL,
+                      `FileCount` INT NULL,
+                      PRIMARY KEY (`TagCountId`));");
                 }
 
                 var checkTableResult = await _databaseService.ExecuteQuery("SELECT COUNT(*) FROM temple.file;");
@@ -70,15 +76,18 @@ namespace TEMPLE.Services
                 var sqlQuery = new StringBuilder();
                 sqlQuery.AppendLine("INSERT INTO temple.file(Path)");
                 foreach (var path in filePaths)
-                {                    
-                    var safePath = path.Replace("\\", "\\\\");
-                    safePath = safePath.Replace("'", @"\'");
+                {
+                    // CHECK IF PATH IS UTF8 COMPLIANT
+                    bool isAlpha = path.All(c=> Char.IsLetterOrDigit(c) || Char.IsWhiteSpace(c) || Char.IsPunctuation(c) || Char.IsSymbol(c));
+                    if (!isAlpha) continue;
+                    var safePath = path.Replace("'", "''");
+                        safePath = safePath.Replace("\\", "\\\\");
+
                     if (sqlQuery.Length > 35) sqlQuery.AppendLine(" union all");
                     sqlQuery.Append($"SELECT '{safePath}' FROM (SELECT COUNT(*) as Count FROM temple.file WHERE Path = '{safePath}') as t WHERE t.Count = 0");
 
                     if(sqlQuery.Length > 10000)
-                    {
-                        
+                    {                        
                         var innerResult = await _databaseService.ExecuteQuery($"{sqlQuery}");
                         
                         sqlQuery.Clear();
@@ -115,6 +124,9 @@ namespace TEMPLE.Services
 
                 foreach(var path in pathsResult)
                 {
+                    bool isAlpha = path.All(c => Char.IsLetterOrDigit(c) || Char.IsWhiteSpace(c) || Char.IsPunctuation(c) || Char.IsSymbol(c));
+                    if (!isAlpha) continue;
+
                     var safePath = path.Replace("\\", "\\\\");
                     safePath = safePath.Replace("'", @"\'");
                     // check if file exists

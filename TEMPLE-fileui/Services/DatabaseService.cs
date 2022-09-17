@@ -256,46 +256,36 @@ namespace fileui.Models
         /// <inheritdoc />
         public async Task<DataTable> ExecuteQuery(string query, int timeout = 10)
         {
-            for (var i = 0; i <= 4; i++)
+            using (var conn = new MySqlConnection(_connection))
             {
-                var delayInSeconds = ((1d / 2d) * (Math.Pow(2d, i + 1) - 1d)); // exponential backoff: 0s, 0.5s, 1.5s, 3.5s, 7.5s, 15.5s
-                var delayMs = (int)(delayInSeconds * 1000);
-                if (i != 0) Console.WriteLine($"INFO Waiting {delayMs}ms before trying to call db again");
-
-                using (var conn = new MySqlConnection(_connection))
+                using (var cmd = new MySqlCommand(query, conn))
                 {
-                    using (var cmd = new MySqlCommand(query, conn))
+                    try
                     {
-                        try
-                        {
-                            cmd.CommandType = CommandType.Text;
-                            cmd.CommandTimeout = timeout;
-                            Console.WriteLine($"DatabaseService.ExecuteQuery CommandText: {cmd.CommandText}");
-                            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+                        cmd.CommandType = CommandType.Text;
+                        cmd.CommandTimeout = timeout;
+                        Console.WriteLine($"DatabaseService.ExecuteQuery CommandText: {cmd.CommandText}");
+                        if (conn.State != ConnectionState.Open) await conn.OpenAsync();
 
-                            var sqlDataAdapter = new MySqlDataAdapter(cmd);
-                            var data = new DataTable();
-                            await sqlDataAdapter.FillAsync(data);
+                        var sqlDataAdapter = new MySqlDataAdapter(cmd);
+                        var data = new DataTable();
+                        await sqlDataAdapter.FillAsync(data);
 
-                            if (data.HasErrors) Console.WriteLine($"ERROR DatabaseService.ExecuteCommand CommandText: {cmd.CommandText}, connection: {_connectionNoCredentials}");
-                            if (conn.State == ConnectionState.Open) await conn.CloseAsync();
+                        if (data.HasErrors) Console.WriteLine($"ERROR DatabaseService.ExecuteCommand CommandText: {cmd.CommandText}, connection: {_connectionNoCredentials}");
+                        if (conn.State == ConnectionState.Open) await conn.CloseAsync();
 
-                            return data;
-                        }
-                        catch (Exception ex)
-                        {
-                            if (conn.State == ConnectionState.Open) await conn.CloseAsync();
-                            if (i == 4) // only log error on last attempt in case this is a deadlock
-                            {
-                                Console.WriteLine(ex + $"{ex.InnerException} DatabaseService.ExecuteCommand connection: {_connectionNoCredentials}{Environment.NewLine}" +
-                                              $"Query: {query} {Environment.NewLine}" +
-                                              $"CommandText: {cmd.CommandText} {Environment.NewLine}", query);
-                            }
-                        }
+                        return data;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (conn.State == ConnectionState.Open) await conn.CloseAsync();
+                          
+                            Console.WriteLine(ex + $"{ex.InnerException} DatabaseService.ExecuteCommand connection: {_connectionNoCredentials}{Environment.NewLine}" +
+                                            $"Query: {query} {Environment.NewLine}" +
+                                            $"CommandText: {cmd.CommandText} {Environment.NewLine}", query);
+                           
                     }
                 }
-
-                await Task.Delay(delayMs);
             }
             return null;
         }
