@@ -12,6 +12,7 @@ using System.IO;
 using Newtonsoft.Json;
 using TEMPLE.Services;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace fileui
 {
@@ -471,6 +472,25 @@ namespace fileui
                 fileSb.AppendLine(file);
             }
             txtFileOutput.Text = fileSb.ToString();
+        }
+
+        private void txtRegexFilter_TextChanged(object sender, EventArgs e)
+        {
+            var sb = new StringBuilder();
+            try
+            {
+                var regex = new Regex(txtRegexFilter.Text);
+                
+                foreach (var line in txtFileOutput.Text.Split(System.Environment.NewLine.ToCharArray()))
+                {
+                    if (regex.Match(line).Success)
+                    {
+                        sb.AppendLine(line);
+                    }
+                }
+            }
+            catch (Exception) { }
+            txtFileOutput.Text = sb.ToString();
         }
     }
 }

@@ -46,6 +46,7 @@ namespace fileui
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.btnApplyTags = new System.Windows.Forms.Button();
             this.btnGetFiles = new System.Windows.Forms.Button();
+            this.txtRegexFilter = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -123,7 +124,7 @@ namespace fileui
             // 
             // txtFileOutput
             // 
-            this.txtFileOutput.Location = new System.Drawing.Point(407, 11);
+            this.txtFileOutput.Location = new System.Drawing.Point(407, 45);
             this.txtFileOutput.Multiline = true;
             this.txtFileOutput.Name = "txtFileOutput";
             this.txtFileOutput.Size = new System.Drawing.Size(420, 483);
@@ -205,11 +206,21 @@ namespace fileui
             this.btnGetFiles.UseVisualStyleBackColor = true;
             this.btnGetFiles.Click += new System.EventHandler(this.btnGetFiles_Click);
             // 
+            // txtRegexFilter
+            // 
+            this.txtRegexFilter.Location = new System.Drawing.Point(407, 15);
+            this.txtRegexFilter.Name = "txtRegexFilter";
+            this.txtRegexFilter.Size = new System.Drawing.Size(261, 20);
+            this.txtRegexFilter.TabIndex = 18;
+            this.txtRegexFilter.Text = "Regex Filter";
+            this.txtRegexFilter.TextChanged += new System.EventHandler(this.txtRegexFilter_TextChanged);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1104, 598);
+            this.Controls.Add(this.txtRegexFilter);
             this.Controls.Add(this.btnGetFiles);
             this.Controls.Add(this.btnApplyTags);
             this.Controls.Add(this.btnClearLines);
@@ -255,6 +266,7 @@ namespace fileui
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Button btnApplyTags;
         private System.Windows.Forms.Button btnGetFiles;
+        private System.Windows.Forms.TextBox txtRegexFilter;
     }
 }
 
